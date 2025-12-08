@@ -47,8 +47,9 @@ const ResumeImage = mongoose.model('ResumeImage', ResumeImageSchema);
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 
 
-// 1. 공지사항 목록 가져오기 API
+// 1. 공지사항 목록 가져오기 API (전체 목록)
 app.get('/api/notices', (req, res) => {
+    // [수정 완료] date 컬럼이 없어서 에러가 나므로, id 역순(최신 등록순)으로 변경했습니다.
     db.query('SELECT * FROM notices ORDER BY id DESC', (err, results) => {
         if (err) {
             console.error(err);
@@ -58,19 +59,19 @@ app.get('/api/notices', (req, res) => {
     });
 });
 
-// ★ [추가됨] 1-1. 공지사항 검색 API (notice.html의 검색 기능과 연동)
+// 1-1. 공지사항 검색 API
 app.get('/api/search', (req, res) => {
-    const keyword = req.query.q; // 클라이언트가 보낸 검색어 (?q=...)
+    const keyword = req.query.q; 
     if (!keyword) return res.json([]);
 
-    // 제목(title)에 검색어가 포함된 것 찾기
+    // [수정 완료] 여기도 date 정렬을 제거하고 id 역순으로 변경했습니다.
     const sql = 'SELECT * FROM notices WHERE title LIKE ? ORDER BY id DESC';
     const searchPattern = `%${keyword}%`;
 
-    db.query('SELECT * FROM notices ORDER BY date DESC, id DESC', (err, results) => {
+    db.query(sql, [searchPattern], (err, results) => {
         if (err) {
             console.error(err);
-            return res.status(500).json({ error: 'DB 오류' });
+            return res.status(500).json({ error: 'DB 검색 오류' });
         }
         res.json(results);
     });
@@ -85,7 +86,7 @@ app.get('/api/notices/:id', (req, res) => {
 });
 
 
-// 3. 문의하기 기능 (Contact)
+// 3. 문의하기 기능
 app.post('/contact', (req, res) => {
     const { name, email, message } = req.body;
     db.query('INSERT INTO inquiries (name, email, message) VALUES (?, ?, ?)', 
@@ -106,7 +107,6 @@ app.post('/submit', upload.single('resume'), async (req, res) => {
     const { name, age, gender, phone, address } = req.body;
     let mongoImageId = "No Image";
 
-    // 1) 이미지 있으면 몽고DB에 저장
     if (req.file) {
         try {
             const imgData = req.file.buffer.toString('base64');
@@ -123,14 +123,12 @@ app.post('/submit', upload.single('resume'), async (req, res) => {
         }
     }
 
-    // 2) 지원자 정보 MySQL에 저장
     const sql = `INSERT INTO applicants (name, age, gender, phone_number, address, resume_file) VALUES (?, ?, ?, ?, ?, ?)`;
     db.query(sql, [name, age, gender, phone, address, mongoImageId], (err) => {
         if (err) {
             console.error(err);
             return res.send('<script>alert("DB 에러: 관리자에게 문의하세요."); history.back();</script>');
         }
-        // 수정됨: thanks.html이 없어도 작동하도록 변경
         res.send('<script>alert("계약이 체결되었습니다. 환영합니다."); location.href="/";</script>');
     });
 });

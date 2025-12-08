@@ -4,9 +4,7 @@
   <meta charset="UTF-8">
   <title>공지사항 - 블랙 컴퍼니</title>
   <link rel="stylesheet" href="style.css">
-  
-
-</head>
+  <link rel="stylesheet" href="notice.css"> </head>
 <body>
   <header>
     <div class="logo"><a href="index.html">BLACK COMPANY</a></div>
@@ -37,7 +35,7 @@
   </footer>
 
   <script>
-    // 1. 목록 그리기 함수 (날짜 포맷 기능 강화)
+    // 1. 목록 그리기 함수 (날짜 포맷 기능 강화 + 링크 연결 수정)
     function renderList(data) {
       const listContainer = document.getElementById('notice-list');
       listContainer.innerHTML = ''; 
@@ -48,23 +46,21 @@
       }
 
       data.forEach(notice => {
-        // [수정된 부분] 날짜 처리 로직
-        // DB 컬럼이 'date'일 수도, 'created_at'일 수도 있어서 둘 다 확인
+        // 날짜 처리 로직
         const rawDate = notice.date || notice.created_at; 
         let dateStr = '날짜 없음';
 
         if (rawDate) {
-            // "2024-12-09T00:00:00.000Z" 처럼 긴 문자열에서 앞 10자리(날짜)만 자름
             try {
                 dateStr = new Date(rawDate).toISOString().split('T')[0];
             } catch (e) {
-                dateStr = rawDate; // 변환 실패 시 원본 그대로 출력
+                dateStr = rawDate;
             }
         }
 
         const itemHTML = `
           <div class="notice-item">
-            <a href="#">
+            <a href="notice_view.html?id=${notice.id}">
               <div class="notice-title">${notice.title}</div>
               <div class="notice-date">${dateStr}</div>
             </a>
