@@ -1,0 +1,17 @@
+app = "bc-web-main"
+primary_region = "nrt" # 한국이면 'nrt'
+
+[env]
+PORT = "3000"
+
+[[services]]
+internal_port = 3000
+protocol = "tcp"
+auto_start_machines = true
+auto_stop_machines = true
+
+[[services.ports]]
+port = 80
+
+[[services.ports]]
+port = 443
