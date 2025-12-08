@@ -67,10 +67,10 @@ app.get('/api/search', (req, res) => {
     const sql = 'SELECT * FROM notices WHERE title LIKE ? ORDER BY id DESC';
     const searchPattern = `%${keyword}%`;
 
-    db.query(sql, [searchPattern], (err, results) => {
+    db.query('SELECT * FROM notices ORDER BY date DESC, id DESC', (err, results) => {
         if (err) {
             console.error(err);
-            return res.status(500).json({ error: 'DB 검색 오류' });
+            return res.status(500).json({ error: 'DB 오류' });
         }
         res.json(results);
     });
