@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>지원서 제출 - 블랙 컴퍼니</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <div class="logo"><a href="index.html">BLACK COMPANY</a></div>
+    <nav>
+      <a href="com.html">기업정보</a>
+      <a href="emp.html">채용정보</a>
+      <a href="notice.html">공지사항</a>
+      <a href="contact.html">문의</a>
+    </nav>
+  </header>
+
+  <section class="apply-hero">
+    <h1>계약 지원서</h1>
+  </section>
+
+  <section class="apply-form">
+    <h2>지원서 작성</h2>
+    
+    <form action="/submit" method="post" enctype="multipart/form-data" onsubmit="return validateAndSubmit(event)">
+      
+      <label for="name">이름</label>
+      <input type="text" id="name" name="name" required>
+
+      <label for="age">나이</label>
+      <input type="number" id="age" name="age" required>
+
+      <label for="gender">성별</label>
+      <select id="gender" name="gender" required>
+        <option value="">-- 선택 --</option>
+        <option value="남성">남성</option>
+        <option value="여성">여성</option>
+        <option value="기타">기타</option>
+      </select>
+
+      <label for="phone">전화번호</label>
+      <input type="tel" id="phone" name="phone" placeholder="010-0000-0000" maxlength="13" required>
+
+      <label for="address">거주지</label>
+      <input type="text" id="address" name="address" required>
+
+      <label for="resume">첨부파일(이력서)</label>
+      <input type="file" id="resume" name="resume" required>
+
+      <button type="submit" class="submit-btn">계약 체결 요청</button>
+    </form>
+  </section>
+
+<script>
+  let isSubmitting = false;
+
+  function validateAndSubmit(e) {
+    if(confirm("정말 계약을 체결하시겠습니까?\n제출 후에는 되돌릴 수 없습니다.")) {
+      isSubmitting = true;
+      window.removeEventListener('beforeunload', beforeUnloadHandler);
+      return true;
+    }
+    e.preventDefault();
+    return false;
+  }
+
+  function beforeUnloadHandler(e) {
+    if (isSubmitting) return;
+    e.preventDefault();
+    e.returnValue = '';
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    window.addEventListener('beforeunload', beforeUnloadHandler);
+    
+    // 폼 변경 감지 및 링크 이동 경고
+    const form = document.querySelector('form');
+    let isFormChanged = false;
+    form.addEventListener('input', () => isFormChanged = true);
+
+    document.querySelectorAll('a[href]').forEach(link => {
+      if (!link.getAttribute('href').startsWith('http') && link.getAttribute('href') !== '#') {
+        link.addEventListener('click', (e) => {
+          if (isFormChanged && !isSubmitting && !confirm('작성 중인 내용이 사라집니다. 이동하시겠습니까?')) {
+            e.preventDefault();
+          }
+        });
+      }
+    });
+  });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>공지사항 상세</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="notice.css"> </head>
+<body>
+  <header>
+    <div class="logo"><a href="index.html">BLACK COMPANY</a></div>
+    <nav>
+      <a href="com.html">기업정보</a>
+      <a href="emp.html">채용정보</a>
+      <a href="notice.html">공지사항</a>
+      <a href="contact.html">문의</a>
+    </nav>
+  </header>
+
+  <section class="notice-hero" style="height: 20vh; padding: 3rem;">
+    <h1>공지사항</h1>
+  </section>
+
+  <section class="notice-detail" style="display:block; max-width:800px; margin: 2rem auto;">
+    <div class="back-link">
+        <a href="notice.html">← 목록으로 돌아가기</a>
+    </div>
+
+    <div class="notice-text" style="margin-top:2rem;">
+      <h2 id="view-title" class="notice-title">로딩 중...</h2>
+      <p id="view-date" class="notice-date"></p>
+      <hr style="margin: 1rem 0; border: 0; border-top: 1px solid #ccc;">
+      <div id="view-content" class="notice-content" style="min-height: 200px;">
+        </div>
+    </div>
+  </section>
+
+  <footer>
+    <p>© 20xx Black Company.</p>
+  </footer>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // 주소창의 ?id=1 같은 파라미터 가져오기
+      const urlParams = new URLSearchParams(window.location.search);
+      const id = urlParams.get('id');
+
+      if (!id) {
+        alert("잘못된 접근입니다.");
+        location.href = 'notice.html';
+        return;
+      }
+
+      // 서버에 데이터 요청 (해당 ID의 글만)
+      fetch(`/api/notices/${id}`)
+        .then(res => res.json())
+        .then(data => {
+          if(data.error) throw new Error(data.error);
+
+          // 화면에 데이터 꽂아넣기
+          document.getElementById('view-title').innerText = data.title;
+          document.getElementById('view-date').innerText = data.date;
+          // 내용은 줄바꿈 등을 위해 HTML로 넣기
+          document.getElementById('view-content').innerHTML = data.content; 
+        })
+        .catch(err => {
+          alert("글을 불러올 수 없습니다.");
+          console.error(err);
+        });
+    });
+  </script>
+</body>
+</html>

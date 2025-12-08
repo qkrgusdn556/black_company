@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>공지사항 - 블랙 컴퍼니</title>
+  <link rel="stylesheet" href="style.css">
+  
+
+</head>
+<body>
+  <header>
+    <div class="logo"><a href="index.html">BLACK COMPANY</a></div>
+    <nav>
+     <a href="com.html">기업정보</a>
+      <a href="emp.html">채용정보</a>
+      <a href="notice.html">공지사항</a>
+      <a href="contact.html">문의</a>
+    </nav>
+  </header>
+
+  <section class="notice-hero">
+    <h1>공지사항</h1>
+  </section>
+
+  <section class="search-container">
+    <input type="text" id="search-input" placeholder="키워드 검색 ">
+    <button id="search-btn">검색</button>
+  </section>
+
+  <section class="notice-list" id="notice-list">
+    <div class="message">데이터를 불러오는 중입니다...</div>
+  </section>
+
+  <footer>
+    <p>© 20xx Black Company. tel:02-000-0000</p>
+    <p>address: Sector 7, Deep Space</p>
+  </footer>
+
+  <script>
+    // 1. 목록 그리기 함수 (데이터 -> HTML 변환)
+    function renderList(data) {
+      const listContainer = document.getElementById('notice-list');
+      listContainer.innerHTML = ''; // 기존 내용 비우기
+
+      if (!data || data.length === 0) {
+        listContainer.innerHTML = '<div class="message">검색 결과가 없습니다.</div>';
+        return;
+      }
+
+      data.forEach(notice => {
+        // 백엔드에서 받은 created_at 날짜가 보기 좋게 안 되어 있을 수도 있어서 안전장치
+        const dateStr = notice.date ? notice.date : '날짜 없음';
+
+        const itemHTML = `
+          <div class="notice-item">
+            <a href="notice_view.html?id=${notice.id}">
+              <div class="notice-title">${notice.title}</div>
+              <div class="notice-date">${dateStr}</div>
+            </a>
+          </div>
+        `;
+        listContainer.innerHTML += itemHTML;
+      });
+    }
+
+    // 2. 전체 목록 불러오기 (GET /api/notices)
+    function loadAllNotices() {
+      fetch('/api/notices')
+        .then(res => res.json())
+        .then(data => renderList(data))
+        .catch(err => {
+          console.error(err);
+          document.getElementById('notice-list').innerHTML = '<div class="message">서버 연결에 실패했습니다.<br>잠시 후 다시 시도해주세요.</div>';
+        });
+    }
+
+    // 3. 검색하기 (GET /api/search?q=...)
+    function searchNotices() {
+      const keyword = document.getElementById('search-input').value.trim();
+      
+      if (!keyword) {
+        alert("검색어를 입력해주세요.");
+        return loadAllNotices(); // 검색어 없으면 전체 목록 복구
+      }
+
+      // 검색어 인코딩 (한글 깨짐 방지)
+      fetch(`/api/search?q=${encodeURIComponent(keyword)}`)
+        .then(res => res.json())
+        .then(data => renderList(data))
+        .catch(err => {
+          console.error(err);
+          alert("검색 중 오류가 발생했습니다.");
+        });
+    }
+
+    // 4. 이벤트 연결 (페이지 로드 시)
+    document.addEventListener('DOMContentLoaded', () => {
+      loadAllNotices(); // 처음엔 전체 목록
+
+      // 검색 버튼 클릭
+      document.getElementById('search-btn').addEventListener('click', searchNotices);
+
+      // 검색창에서 엔터 키 입력
+      document.getElementById('search-input').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') searchNotices();
+      });
+    });
+  </script>
+</body>
+</html>
