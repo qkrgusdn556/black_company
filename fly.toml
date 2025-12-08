@@ -7,11 +7,14 @@ PORT = "3000"
 [[services]]
 internal_port = 3000
 protocol = "tcp"
-auto_start_machines = true
-auto_stop_machines = true
 
 [[services.ports]]
 port = 80
+handlers = ["http"]
 
 [[services.ports]]
 port = 443
+handlers = ["tls", "http"]
+
+auto_start_machines = true
+auto_stop_machines = true
