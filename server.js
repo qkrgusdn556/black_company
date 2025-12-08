@@ -87,5 +87,5 @@ app.get('/image/:id', async (req, res) => {
 
 // 서버 실행 (Fly.io용)
 app.listen(PORT, "0.0.0.0", () => {
-    console.log(`🚀 서버 실행 중 (PORT: ${PORT})`);
+    console.log(`🚀 Server Started on PORT: ${PORT}`);
 });
