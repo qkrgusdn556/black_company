@@ -75,7 +75,7 @@ app.post('/submit', upload.single('resume'), async (req, res) => {
             [name, age, gender, phone, address, resumeFile]
         );
 
-        res.send('<script>alert("지원 완료!"); location.href="/";</script>');
+         res.send('<script>alert("지원 완료!"); location.href="/thanks.html";</script>');
     } catch (err) {
         console.error("❌ MySQL 저장 실패:", err);
         res.send('<script>alert("DB 오류 발생"); history.back();</script>');
