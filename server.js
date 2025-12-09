@@ -8,117 +8,85 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Multer 설정
-const storage = multer.memoryStorage();
-const upload = multer({ storage });
+const upload = multer({ storage: multer.memoryStorage() });
 
-// 미들웨어 설정
+// 정적 파일 & Body Parser
 app.use(express.static('public'));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
-// ---------------- MySQL 연결 ----------------
+// MySQL 커넥션 풀 - 연결 제한 줄임
 const db = mysql.createPool({
     host: process.env.DB_HOST,
     port: process.env.DB_PORT || 3306,
     user: process.env.DB_USER,
     password: process.env.DB_PASS,
-    database: process.env.DB_NAME
+    database: process.env.DB_NAME,
+    waitForConnections: true,
+    connectionLimit: 3,  // 🔥 핵심 수정
+    queueLimit: 0
 });
 
-// DB 연결 테스트
+// DB 연결 테스트 라우트
 app.get('/api/time', async (req, res) => {
     try {
         const [rows] = await db.query('SELECT NOW() AS now');
         res.json({ now: rows[0].now });
     } catch (err) {
-        console.error("DB 연결 오류:", err);
-        res.status(500).json({ error: "DB error" });
+        console.error("DB Error:", err);
+        res.status(500).json({ error: 'DB error' });
     }
 });
 
-// ---------------- MongoDB 연결 ----------------
-mongoose.connect(process.env.MONGO_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true
-})
-.then(() => console.log("🎯 MongoDB Connected"))
-.catch(err => console.error("❌ MongoDB Connection Error:", err));
+// MongoDB Atlas 연결 (최신 방식)
+if (process.env.MONGO_URI) {
+    mongoose.connect(process.env.MONGO_URI)
+        .then(() => console.log("🎯 MongoDB Connected"))
+        .catch(err => console.error("❌ MongoDB Connection Error:", err));
+} else {
+    console.log("⚠️ MongoDB URI 없음");
+}
 
-// Schema
+// MongoDB Schema
 const ResumeImageSchema = new mongoose.Schema({
     filename: String,
     contentType: String,
     imageBase64: String,
-    uploadDate: { type: Date, default: Date.now }
+    createdAt: { type: Date, default: Date.now }
 });
 const ResumeImage = mongoose.model('ResumeImage', ResumeImageSchema);
 
-// ---------------- Routes ----------------
+// 라우트
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 
-// 메인 페이지
-app.get('/', (req, res) =>
-    res.sendFile(path.join(__dirname, "public", "index.html"))
-);
-
-// 공지사항 목록
-app.get('/api/notices', async (req, res) => {
-    try {
-        const [rows] = await db.query("SELECT * FROM notices ORDER BY id DESC");
-        res.json(rows);
-    } catch {
-        res.status(500).json({ error: "DB 오류" });
-    }
-});
-
-// 공지사항 상세
-app.get('/api/notices/:id', async (req, res) => {
-    try {
-        const [rows] = await db.query("SELECT * FROM notices WHERE id = ?", [req.params.id]);
-        if (!rows.length) return res.status(404).json({ error: "Not found" });
-        res.json(rows[0]);
-    } catch {
-        res.status(500).json({ error: "DB 오류" });
-    }
-});
-
-// 이미지 보기
-app.get('/image/:id', async (req, res) => {
-    try {
-        const img = await ResumeImage.findById(req.params.id);
-        if (!img) return res.status(404).send("이미지 없음");
-        res.contentType(img.contentType);
-        res.send(Buffer.from(img.imageBase64, "base64"));
-    } catch {
-        res.status(500).send("에러");
-    }
-});
-
-// 지원서 제출 (이미지 저장 포함)
+// 지원서 제출
 app.post('/submit', upload.single('resume'), async (req, res) => {
     const { name, age, gender, phone, address } = req.body;
-    let mongoImageId = null;
+    let mongoImageId = "No Image";
 
+    // 이미지 MongoDB 저장
     if (req.file) {
         try {
-            const imgData = req.file.buffer.toString("base64");
-            const savedImg = await new ResumeImage({
+            const doc = await ResumeImage.create({
                 filename: req.file.originalname,
                 contentType: req.file.mimetype,
-                imageBase64: imgData
-            }).save();
-
-            mongoImageId = savedImg._id.toString();
-            console.log("📎 MongoDB 이미지 저장:", mongoImageId);
+                imageBase64: req.file.buffer.toString('base64')
+            });
+            mongoImageId = doc._id.toString();
         } catch (err) {
             console.error("❌ 이미지 저장 실패:", err);
         }
     }
 
+    // MySQL 저장
     try {
-        await db.query(
-            "INSERT INTO applicants (name, age, gender, phone_number, address, resume_file) VALUES (?, ?, ?, ?, ?, ?)",
-            [name, age, gender, phone, address, mongoImageId]
-        );
+        const sql = `
+        INSERT INTO applicants 
+        (name, age, gender, phone_number, address, resume_file)
+        VALUES (?, ?, ?, ?, ?, ?)
+        `;
+        await db.query(sql, [name, age, gender, phone, address, mongoImageId]);
+
         res.send('<script>alert("지원 완료!"); location.href="/";</script>');
     } catch (err) {
         console.error("❌ MySQL 저장 실패:", err);
@@ -126,7 +94,5 @@ app.post('/submit', upload.single('resume'), async (req, res) => {
     }
 });
 
-// ---------------- 서버 실행 ----------------
-app.listen(PORT, "0.0.0.0", () => {
-    console.log(`🚀 Server running on PORT ${PORT}`);
-});
+// 서버 실행
+app.listen(PORT, "0.0.0.0", () => console.log(`🚀 Server running on PORT ${PORT}`));
