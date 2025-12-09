@@ -1,5 +1,5 @@
 const express = require('express');
-const mysql = require('mysql2/promise');
+const { Pool } = require('pg');
 const mongoose = require('mongoose');
 const multer = require('multer');
 const path = require('path');
@@ -24,27 +24,23 @@ console.log("DB_PASS:", process.env.DB_PASS ? "SET" : "❌ NOT SET");
 console.log("DB_NAME:", process.env.DB_NAME);
 console.log("========================");
 
-// MySQL 커넥션 풀 설정
-const db = mysql.createPool({
+// PostgreSQL Pool 설정
+const db = new Pool({
     host: process.env.DB_HOST,
-    port: process.env.DB_PORT || 3306,
+    port: process.env.DB_PORT,
     user: process.env.DB_USER,
     password: process.env.DB_PASS,
     database: process.env.DB_NAME,
-    waitForConnections: true,
-    connectionLimit: 1,
-    maxIdle: 1,
-    idleTimeout: 5000,
-    queueLimit: 0
+    ssl: { rejectUnauthorized: false }
 });
 
 // DB 연결 테스트 라우트
 app.get('/api/test-db', async (req, res) => {
     try {
-        const [rows] = await db.query("SELECT 1 AS result");
-        res.json({ success: true, rows });
+        const result = await db.query("SELECT NOW()");
+        res.json({ success: true, now: result.rows[0].now });
     } catch (err) {
-        console.error("MySQL Test Error:", err);
+        console.error("PostgreSQL Test Error:", err);
         res.status(500).json({ error: err.message });
     }
 });
@@ -73,7 +69,7 @@ app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.ht
 // 지원서 제출
 app.post('/submit', upload.single('resume'), async (req, res) => {
     const { name, age, gender, phone, address } = req.body;
-    let mongoImageId = "No Image";
+    let resumeFile = "No Image";
 
     if (req.file) {
         try {
@@ -82,23 +78,22 @@ app.post('/submit', upload.single('resume'), async (req, res) => {
                 contentType: req.file.mimetype,
                 imageBase64: req.file.buffer.toString('base64')
             });
-            mongoImageId = doc._id.toString();
+            resumeFile = doc._id.toString();
         } catch (err) {
-            console.error("❌ 이미지 저장 실패:", err);
+            console.error("❌ 이미지 MongoDB 저장 실패:", err);
         }
     }
 
     try {
-        const sql = `
+        await db.query(`
         INSERT INTO applicants 
         (name, age, gender, phone_number, address, resume_file)
-        VALUES (?, ?, ?, ?, ?, ?)
-        `;
-        await db.query(sql, [name, age, gender, phone, address, mongoImageId]);
+        VALUES ($1, $2, $3, $4, $5, $6)
+        `, [name, age, gender, phone, address, resumeFile]);
 
         res.send('<script>alert("지원 완료!"); location.href="/";</script>');
     } catch (err) {
-        console.error("❌ MySQL 저장 실패:", err);
+        console.error("❌ PostgreSQL 저장 실패:", err);
         res.send('<script>alert("DB 오류 발생"); history.back();</script>');
     }
 });
