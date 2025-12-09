@@ -23,9 +23,10 @@ const db = mysql.createPool({
     password: process.env.DB_PASS,
     database: process.env.DB_NAME,
     waitForConnections: true,
-    connectionLimit: 3,
-    queueLimit: 0,
-    idleTimeout: 60000 
+    connectionLimit: 1,  // 최대 단일 연결
+    maxIdle: 1,          // 유휴 연결 최소 유지
+    idleTimeout: 5000,
+    queueLimit: 0
 });
 
 // DB 연결 테스트 라우트
