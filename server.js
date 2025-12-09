@@ -15,7 +15,16 @@ app.use(express.static('public'));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
-// MySQL 커넥션 풀 - 연결 제한 줄임
+// ===== DB ENV LOG =====
+console.log("===== DB ENV CHECK =====");
+console.log("DB_HOST:", process.env.DB_HOST);
+console.log("DB_PORT:", process.env.DB_PORT);
+console.log("DB_USER:", process.env.DB_USER);
+console.log("DB_PASS:", process.env.DB_PASS ? "SET" : "❌ NOT SET");
+console.log("DB_NAME:", process.env.DB_NAME);
+console.log("========================");
+
+// MySQL 커넥션 풀 설정
 const db = mysql.createPool({
     host: process.env.DB_HOST,
     port: process.env.DB_PORT || 3306,
@@ -23,24 +32,24 @@ const db = mysql.createPool({
     password: process.env.DB_PASS,
     database: process.env.DB_NAME,
     waitForConnections: true,
-    connectionLimit: 1,  // 최대 단일 연결
-    maxIdle: 1,          // 유휴 연결 최소 유지
+    connectionLimit: 1,
+    maxIdle: 1,
     idleTimeout: 5000,
     queueLimit: 0
 });
 
 // DB 연결 테스트 라우트
-app.get('/api/time', async (req, res) => {
+app.get('/api/test-db', async (req, res) => {
     try {
-        const [rows] = await db.query('SELECT NOW() AS now');
-        res.json({ now: rows[0].now });
+        const [rows] = await db.query("SELECT 1 AS result");
+        res.json({ success: true, rows });
     } catch (err) {
-        console.error("DB Error:", err);
-        res.status(500).json({ error: 'DB error' });
+        console.error("MySQL Test Error:", err);
+        res.status(500).json({ error: err.message });
     }
 });
 
-// MongoDB Atlas 연결 (최신 방식)
+// MongoDB 연결
 if (process.env.MONGO_URI) {
     mongoose.connect(process.env.MONGO_URI)
         .then(() => console.log("🎯 MongoDB Connected"))
@@ -58,7 +67,7 @@ const ResumeImageSchema = new mongoose.Schema({
 });
 const ResumeImage = mongoose.model('ResumeImage', ResumeImageSchema);
 
-// 라우트
+// 메인 페이지
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 
 // 지원서 제출
@@ -66,7 +75,6 @@ app.post('/submit', upload.single('resume'), async (req, res) => {
     const { name, age, gender, phone, address } = req.body;
     let mongoImageId = "No Image";
 
-    // 이미지 MongoDB 저장
     if (req.file) {
         try {
             const doc = await ResumeImage.create({
@@ -80,7 +88,6 @@ app.post('/submit', upload.single('resume'), async (req, res) => {
         }
     }
 
-    // MySQL 저장
     try {
         const sql = `
         INSERT INTO applicants 
