@@ -194,6 +194,22 @@ app.get('/api/admin/inquiries/:id', async (req, res) => {
         res.status(500).json({ error: "DB 오류" });
     }
 });
+// 📩 문의 제출
+app.post('/contact', async (req, res) => {
+  const { name, email, message } = req.body;
+
+  try {
+    await pool.execute(
+      "INSERT INTO inquiries (name, email, message) VALUES (?, ?, ?)",
+      [name, email, message]
+    );
+    res.send('<script>alert("문의가 접수되었습니다!"); location.href="/";</script>');
+  } catch (err) {
+    console.error("문의 저장 실패:", err);
+    res.send('<script>alert("DB 오류 발생"); history.back();</script>');
+  }
+});
+
 
 /*━━━━━━━━━━━━━━━━━━━━━━━━━━━*/
 app.listen(PORT, "0.0.0.0", () =>
