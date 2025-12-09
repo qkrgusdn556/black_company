@@ -14,7 +14,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
-// 🐬 MySQL Pool (Railway Public Proxy) 설정
+// 🐬 MySQL Pool
 const pool = mysql.createPool({
     host: process.env.DB_HOST,
     port: process.env.DB_PORT,
@@ -27,7 +27,7 @@ const pool = mysql.createPool({
     ssl: { rejectUnauthorized: false }
 });
 
-// MongoDB 연결
+// 🍃 MongoDB 연결
 if (process.env.MONGO_URI) {
     mongoose.connect(process.env.MONGO_URI)
         .then(() => console.log("🍃 MongoDB 연결 성공!"))
@@ -36,6 +36,7 @@ if (process.env.MONGO_URI) {
     console.log("⚠️ MongoDB 사용 안함 (환경변수 없음)");
 }
 
+// MongoDB 스키마
 const ResumeImageSchema = new mongoose.Schema({
     filename: String,
     contentType: String,
@@ -81,7 +82,41 @@ app.post('/submit', upload.single('resume'), async (req, res) => {
     }
 });
 
-// 📌 공지사항 CRUD
+/*━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ 📢 사용자용 공지사항 API (클라이언트 notice.html에서 사용)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━*/
+
+// 공지 목록
+app.get('/api/notices', async (req, res) => {
+    try {
+        const [rows] = await pool.execute(
+            'SELECT id, title, DATE_FORMAT(created_at, "%Y-%m-%d") AS date FROM notices ORDER BY id DESC LIMIT 5'
+        );
+        res.json(rows);
+    } catch (err) {
+        console.error("공지 목록 오류:", err);
+        res.status(500).json({ error: "DB 오류" });
+    }
+});
+
+// 공지 상세
+app.get('/api/notices/:id', async (req, res) => {
+    try {
+        const [rows] = await pool.execute(
+            'SELECT title, content, DATE_FORMAT(created_at, "%Y-%m-%d") AS date FROM notices WHERE id=?',
+            [req.params.id]
+        );
+        if (!rows.length) return res.status(404).json({ error: "공지 없음" });
+        res.json(rows[0]);
+    } catch (err) {
+        console.error("공지 상세 오류:", err);
+        res.status(500).json({ error: "DB 오류" });
+    }
+});
+
+/*━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ 🔐 관리자용 공지사항 CRUD
+━━━━━━━━━━━━━━━━━━━━━━━━━━━*/
 app.post('/api/admin/notices', async (req, res) => {
     const { title, content } = req.body;
     try {
@@ -127,7 +162,9 @@ app.delete('/api/admin/notices/:id', async (req, res) => {
     }
 });
 
-// 지원자 목록
+/*━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ 📄 지원자/문의 조회
+━━━━━━━━━━━━━━━━━━━━━━━━━━━*/
 app.get('/api/applicants', async (_, res) => {
     try {
         const [rows] = await pool.execute("SELECT * FROM applicants ORDER BY id DESC");
@@ -137,7 +174,6 @@ app.get('/api/applicants', async (_, res) => {
     }
 });
 
-// 문의사항 목록
 app.get('/api/admin/inquiries', async (_, res) => {
     try {
         const [rows] = await pool.execute("SELECT * FROM inquiries ORDER BY id DESC");
@@ -147,7 +183,6 @@ app.get('/api/admin/inquiries', async (_, res) => {
     }
 });
 
-// 문의 상세
 app.get('/api/admin/inquiries/:id', async (req, res) => {
     try {
         const [rows] = await pool.execute(
@@ -160,6 +195,7 @@ app.get('/api/admin/inquiries/:id', async (req, res) => {
     }
 });
 
+/*━━━━━━━━━━━━━━━━━━━━━━━━━━━*/
 app.listen(PORT, "0.0.0.0", () =>
-    console.log(`🚀 MySQL Admin Server Running on PORT ${PORT}`)
+    console.log(`🚀 Server Running on PORT ${PORT}`)
 );
