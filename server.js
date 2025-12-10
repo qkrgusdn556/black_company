@@ -114,6 +114,39 @@ app.get('/api/notices/:id', async (req, res) => {
     }
 });
 
+// 공지 전체 조회 (사용자용)
+app.get('/api/notices', async (req, res) => {
+    try {
+        const notices = await query(`
+            SELECT id, title, created_at 
+            FROM notices 
+            ORDER BY id DESC
+        `);
+        res.json(notices);
+    } catch (err) {
+        res.status(500).json({ error: 'DB 오류' });
+    }
+});
+
+// 🔎 공지 검색 API 추가
+app.get('/api/search', async (req, res) => {
+    const keyword = `%${req.query.q}%`;
+
+    try {
+        const results = await query(`
+            SELECT id, title, created_at 
+            FROM notices 
+            WHERE title LIKE ? OR content LIKE ?
+            ORDER BY id DESC
+        `, [keyword, keyword]);
+
+        res.json(results);
+    } catch (err) {
+        res.status(500).json({ error: '검색 실패' });
+    }
+});
+
+
 /*━━━━━━━━━━━━━━━━━━━━━━━━━━━
  🔐 관리자용 공지사항 CRUD
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━*/
