@@ -4,14 +4,12 @@
   <meta charset="UTF-8">
   <title>공지사항 - 블랙 컴퍼니</title>
   <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="notice.css">
-</head>
+  <link rel="stylesheet" href="notice.css"> </head>
 <body>
-
   <header>
     <div class="logo"><a href="index.html">BLACK COMPANY</a></div>
     <nav>
-      <a href="com.html">기업정보</a>
+     <a href="com.html">기업정보</a>
       <a href="emp.html">채용정보</a>
       <a href="notice.html">공지사항</a>
       <a href="contact.html">문의</a>
@@ -37,10 +35,10 @@
   </footer>
 
   <script>
-    // 1. 목록 그리기 함수 (id 존재 여부에 따라 링크 분기)
+    // 1. 목록 그리기 함수 (날짜 포맷 기능 강화 + 링크 연결 수정)
     function renderList(data) {
       const listContainer = document.getElementById('notice-list');
-      listContainer.innerHTML = '';
+      listContainer.innerHTML = ''; 
 
       if (!data || data.length === 0) {
         listContainer.innerHTML = '<div class="message">검색 결과가 없습니다.</div>';
@@ -48,32 +46,26 @@
       }
 
       data.forEach(notice => {
-        const rawDate = notice.date || notice.created_at;
+        // 날짜 처리 로직
+        const rawDate = notice.date || notice.created_at; 
         let dateStr = '날짜 없음';
 
         if (rawDate) {
-          try {
-            dateStr = new Date(rawDate).toISOString().split('T')[0];
-          } catch (e) {
-            dateStr = rawDate;
-          }
+            try {
+                dateStr = new Date(rawDate).toISOString().split('T')[0];
+            } catch (e) {
+                dateStr = rawDate;
+            }
         }
-
-        // id 있으면 → 실데이터 상세 페이지
-        // id 없으면 → 테스트용 상세 페이지
-        const detailPage = notice.id
-          ? `notice_view.html?id=${notice.id}`
-          : `notice_d.html`;
 
         const itemHTML = `
           <div class="notice-item">
-            <a href="${detailPage}">
+            <a href="notice_view.html?id=${notice.id}">
               <div class="notice-title">${notice.title}</div>
               <div class="notice-date">${dateStr}</div>
             </a>
           </div>
         `;
-
         listContainer.innerHTML += itemHTML;
       });
     }
@@ -89,13 +81,13 @@
         });
     }
 
-    // 3. 검색 기능
+    // 3. 검색하기
     function searchNotices() {
       const keyword = document.getElementById('search-input').value.trim();
-
+      
       if (!keyword) {
         alert("검색어를 입력해주세요.");
-        return loadAllNotices();
+        return loadAllNotices(); 
       }
 
       fetch(`/api/search?q=${encodeURIComponent(keyword)}`)
@@ -107,16 +99,15 @@
         });
     }
 
-    // 4. 초기 실행 및 이벤트 바인딩
+    // 4. 이벤트 연결
     document.addEventListener('DOMContentLoaded', () => {
-      loadAllNotices();
+      loadAllNotices(); 
 
       document.getElementById('search-btn').addEventListener('click', searchNotices);
       document.getElementById('search-input').addEventListener('keypress', (e) => {
         if (e.key === 'Enter') searchNotices();
       });
     });
-  </script>
-
+</script>
 </body>
 </html>
